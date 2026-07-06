@@ -17,6 +17,7 @@ The application does **not** scrape protected job boards, log into accounts, or 
 - One-page DOCX and PDF resume generation
 - Responsive local review dashboard
 - Deterministic resume-tailoring plan and cover-letter draft
+- Browser-assisted form filling that stops at the Submit button (opt-in)
 - Review queue; no submit action exists
 - CLI and unit tests using only the Python standard library
 
@@ -62,6 +63,24 @@ python -m ai_internship_hunter --db data/hunter.db init
 
 Generated review packets are written under `generated/`. Read and edit them before opening the application URL yourself.
 
+### Browser-assisted application (opt-in)
+
+After `build-resume` has produced the tailored PDF and `REVIEW.md` for a job, the
+`apply` command opens that job's public application page in a **visible** browser,
+fills the fields it can confidently identify on Greenhouse- and Lever-hosted forms,
+uploads the tailored resume, and pastes the cover-letter draft. It then scrolls to
+the Submit button, outlines it in red, and pauses. **You review every field and
+click Submit yourself — the tool never submits and never logs into an account.**
+
+```powershell
+pip install -e ".[browser]"
+playwright install chromium
+python -m ai_internship_hunter --db data/hunter.db apply --job-id 1
+```
+
+Fields the form does not expose are reported as skipped so you can complete them by
+hand before submitting.
+
 ## Architecture
 
 - `config/`: candidate and search preferences
@@ -74,8 +93,11 @@ Generated review packets are written under `generated/`. Read and edit them befo
 - `dashboard.py`: local read-only review interface
 - `providers.py`: JSON, Greenhouse, and Lever discovery adapters
 - `reports.py`: ranked top-match reports
+- `browser_bot.py`: opt-in form filling that stops before submit (pure field plan + thin Playwright driver)
 - `cli.py`: end-to-end local workflow
 
 ## Next milestone
 
-Add opt-in browser-assisted form filling that stops at the final review page, plus interview-preparation packets for submitted roles.
+Add interview-preparation packets (company research, likely questions, coding and
+behavioral prompts) for roles you have submitted, plus a GitHub/LinkedIn analyzer
+that suggests resume updates from newly completed projects.

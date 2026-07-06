@@ -4,6 +4,13 @@ import argparse
 import sys
 from pathlib import Path
 
+from .browser_bot import (
+    ApplicantProfile,
+    ApplicationAssistant,
+    build_field_plan,
+    extract_cover_letter,
+    packet_dir_for,
+)
 from .config import load_defaults, project_root
 from .dashboard import serve_dashboard
 from .matcher import JobMatcher
@@ -46,6 +53,17 @@ def build_parser() -> argparse.ArgumentParser:
     dashboard = commands.add_parser("dashboard", help="Start the local read-only review dashboard")
     dashboard.add_argument("--host", default="127.0.0.1")
     dashboard.add_argument("--port", type=int, default=8765)
+    apply = commands.add_parser(
+        "apply",
+        help="Open the application form in a browser, fill it, and stop at Submit",
+    )
+    apply.add_argument("--job-id", type=int, required=True)
+    apply.add_argument("--output", type=Path, default=Path("generated"))
+    apply.add_argument(
+        "--headless",
+        action="store_true",
+        help="Run without a visible window (for testing only; you cannot click Submit)",
+    )
     return parser
 
 
@@ -143,5 +161,32 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "dashboard":
         serve_dashboard(repository, host=args.host, port=args.port)
+        return 0
+    if args.command == "apply":
+        job = repository.get_job(args.job_id)
+        if job is None:
+            raise SystemExit(f"Job {args.job_id} does not exist")
+        if not job.url:
+            raise SystemExit(f"Job {job.id} has no application URL")
+        packet_dir = packet_dir_for(args.output, job.id, job.company, job.title)
+        resume_pdf = packet_dir / "tailored-resume.pdf"
+        review_md = packet_dir / "REVIEW.md"
+        if not resume_pdf.exists() or not review_md.exists():
+            raise SystemExit(
+                f"Missing materials for job {job.id}. Run: "
+                f"build-resume --job-id {job.id} first"
+            )
+        applicant = ApplicantProfile.load(
+            project_root() / "config" / "candidate.json",
+            project_root() / "config" / "resume.json",
+        )
+        cover_letter = extract_cover_letter(review_md.read_text(encoding="utf-8"))
+        plan = build_field_plan(applicant, resume_pdf.resolve(), cover_letter)
+        print(f"Opening application for: {job.company} - {job.title}")
+        print(f"URL: {job.url}")
+        try:
+            ApplicationAssistant(headless=args.headless).apply(job.url, plan)
+        except RuntimeError as error:
+            raise SystemExit(str(error))
         return 0
     return 1
