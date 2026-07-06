@@ -13,6 +13,12 @@ from .browser_bot import (
 )
 from .config import load_defaults, project_root
 from .dashboard import serve_dashboard
+from .github_analyzer import (
+    analyze as analyze_github,
+    fetch_repos,
+    render_report,
+    username_from_url,
+)
 from .interview_prep import InterviewPrepGenerator
 from .matcher import JobMatcher
 from .materials import ReviewPacketGenerator
@@ -59,6 +65,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
     interview.add_argument("--job-id", type=int, required=True)
     interview.add_argument("--output", type=Path, default=Path("generated"))
+    github = commands.add_parser(
+        "github-review",
+        help="Analyze public GitHub repos and suggest resume updates",
+    )
+    github.add_argument("--user", help="GitHub username (defaults to the resume profile)")
+    github.add_argument("--output", type=Path, default=Path("generated/github-review.md"))
+    github.add_argument("--include-forks", action="store_true", help="Include forked repos")
     apply = commands.add_parser(
         "apply",
         help="Open the application form in a browser, fill it, and stop at Submit",
@@ -180,6 +193,26 @@ def main(argv: list[str] | None = None) -> int:
             )
         path = InterviewPrepGenerator(profile, args.output).generate(job, result)
         print(f"Interview prep: {path}")
+        return 0
+    if args.command == "github-review":
+        source = ResumeSource.load(project_root() / "config" / "resume.json")
+        username = args.user or username_from_url(source.github)
+        if not username:
+            raise SystemExit("No GitHub username provided and none found in resume.json")
+        try:
+            repos = fetch_repos(username)
+        except Exception as error:
+            raise SystemExit(f"Could not fetch repositories for {username}: {error}")
+        report = analyze_github(
+            repos, source, profile.skills, include_forks=args.include_forks
+        )
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(render_report(report), encoding="utf-8")
+        print(
+            f"Analyzed {len(repos)} repos for {username}: "
+            f"{len(report.new_projects)} new project(s), "
+            f"{len(report.hygiene)} hygiene note(s). Report: {args.output}"
+        )
         return 0
     if args.command == "apply":
         job = repository.get_job(args.job_id)

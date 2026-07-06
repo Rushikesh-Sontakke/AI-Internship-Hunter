@@ -19,6 +19,7 @@ The application does **not** scrape protected job boards, log into accounts, or 
 - Deterministic resume-tailoring plan and cover-letter draft
 - Browser-assisted form filling that stops at the Submit button (opt-in)
 - Deterministic interview-prep packets grounded in the posting and your evidence
+- GitHub analyzer that flags repos missing from your resume and suggests updates
 - Review queue; no submit action exists
 - CLI and unit tests using only the Python standard library
 
@@ -96,6 +97,23 @@ python -m ai_internship_hunter --db data/hunter.db interview --job-id 1
 
 The packet is written as `INTERVIEW.md` in the job's `generated/` folder.
 
+### GitHub review
+
+Read your public repositories and suggest resume updates. It lists source repos not
+yet represented on your resume (with a draft bullet template — you fill in the real
+metric), flags repos missing a description or topics, and surfaces languages/topics
+that appear in your work but not on your skills list. It reports metadata only and
+never invents achievements.
+
+```powershell
+python -m ai_internship_hunter --db data/hunter.db github-review
+python -m ai_internship_hunter --db data/hunter.db github-review --user someone-else
+```
+
+The username defaults to the GitHub URL in `config/resume.json`. The report is
+written to `generated/github-review.md`. Uses the unauthenticated public GitHub API
+(rate-limited to 60 requests/hour), so no login or token is required.
+
 ## Architecture
 
 - `config/`: candidate and search preferences
@@ -110,10 +128,12 @@ The packet is written as `INTERVIEW.md` in the job's `generated/` folder.
 - `reports.py`: ranked top-match reports
 - `browser_bot.py`: opt-in form filling that stops before submit (pure field plan + thin Playwright driver)
 - `interview_prep.py`: deterministic, posting-grounded interview study packets
+- `github_analyzer.py`: public-repo analysis and grounded resume-update suggestions
 - `cli.py`: end-to-end local workflow
 
-## Next milestone
+## Possible future work
 
-Add a GitHub/LinkedIn analyzer that reads your public repositories, identifies newly
-completed projects, and suggests concrete resume and project-description updates so
-your application materials stay current with minimal manual effort.
+- Rank interview-prep concept areas and cap to the top few for focus.
+- Tighten repo-to-resume matching beyond token overlap.
+- Optional GitHub token support for higher API rate limits.
+- Scheduler to run discovery each morning.
