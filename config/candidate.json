@@ -1,0 +1,28 @@
+{
+  "name": "Rushikesh Sontakke",
+  "email": "sontakkerushikesh547@gmail.com",
+  "phone": "+886-965-708-442",
+  "location": "Hsinchu, Taiwan",
+  "graduation": "January 2027",
+  "work_authorized_in_taiwan": true,
+  "summary": "EECS undergraduate at National Tsing Hua University specializing in machine learning and computer vision, with experience building and deploying deep learning, predictive ML, and full-stack systems.",
+  "skills": [
+    "Python", "C", "C++", "JavaScript", "TypeScript", "SQL", "PyTorch",
+    "scikit-learn", "XGBoost", "YOLOv8", "OpenCV", "OpenOCR", "SHAP",
+    "Pandas", "NumPy", "feature engineering", "model evaluation", "Flask",
+    "React", "React Native", "Firebase", "Docker", "Git", "MySQL",
+    "Hugging Face Spaces", "Render"
+  ],
+  "role_interests": [
+    "machine learning engineer", "ai engineer", "computer vision engineer",
+    "data scientist", "applied ai", "backend ai", "mlops"
+  ],
+  "evidence": [
+    "Improved OCR accuracy from 63% to 79.6% across 403 drug classes.",
+    "Built a YOLOv8, OpenCV, and OpenOCR pill-recognition pipeline with Flask and Docker.",
+    "Built an XGBoost and SHAP student-performance pipeline over 6,607 records.",
+    "Mentored more than 20 students as a Python teaching assistant.",
+    "Built and deployed a React and Firebase real-time chat application."
+  ]
+}
+

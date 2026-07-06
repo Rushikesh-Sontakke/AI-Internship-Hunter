@@ -1,0 +1,25 @@
+[
+  {
+    "source": "example",
+    "external_id": "cv-intern-001",
+    "title": "Computer Vision Engineer Intern",
+    "company": "Example Vision Labs",
+    "location": "Taipei, Taiwan",
+    "description": "Paid internship building Python computer vision pipelines with PyTorch, YOLO, OpenCV, Docker, REST APIs, and model evaluation. Undergraduate students graduating in 2027 are welcome.",
+    "url": "https://example.com/jobs/cv-intern-001",
+    "language": "English",
+    "is_paid": true
+  },
+  {
+    "source": "example",
+    "external_id": "frontend-002",
+    "title": "Frontend Design Intern",
+    "company": "Example Product Co",
+    "location": "Kaohsiung, Taiwan",
+    "description": "Create visual interfaces with Figma and CSS. Portfolio of graphic design work required.",
+    "url": "https://example.com/jobs/frontend-002",
+    "language": "English",
+    "is_paid": true
+  }
+]
+

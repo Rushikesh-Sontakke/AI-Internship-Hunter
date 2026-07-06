@@ -1,0 +1,92 @@
+{
+  "name": "Rushikesh Sontakke",
+  "email": "sontakkerushikesh547@gmail.com",
+  "phone": "+886-965-708-442",
+  "location": "Hsinchu, Taiwan",
+  "github": "https://github.com/Rushikesh-Sontakke",
+  "linkedin": "https://www.linkedin.com/in/rushikesh-sontakke1008/",
+  "base_summary": "EECS undergraduate at National Tsing Hua University specializing in machine learning and computer vision. Built and deployed end-to-end deep learning pipelines and predictive ML models, with hands-on experience across PyTorch, data engineering, and full-stack deployment.",
+  "education": {
+    "school": "National Tsing Hua University",
+    "degree": "B.S. in Electrical Engineering and Computer Science",
+    "location": "Hsinchu, Taiwan",
+    "dates": "Sep 2022 - Jan 2027",
+    "details": [
+      "MOE Taiwan Scholarship recipient for academic excellence (merit-based, full funding).",
+      "Coursework: Machine Learning, Data Structures, Linear Algebra, Introduction to Quantum Information."
+    ]
+  },
+  "skill_groups": [
+    {"label": "Languages", "skills": ["Python", "C/C++", "JavaScript", "TypeScript", "SQL"]},
+    {"label": "ML / DL", "skills": ["PyTorch", "scikit-learn", "XGBoost", "YOLOv8", "OpenCV", "OpenOCR", "SHAP"]},
+    {"label": "Data", "skills": ["Pandas", "NumPy", "feature engineering", "model evaluation"]},
+    {"label": "Web / Backend", "skills": ["Flask", "React", "React Native", "Firebase"]},
+    {"label": "Tools", "skills": ["Docker", "Git", "MySQL", "Conda", "Hugging Face Spaces", "Render"]}
+  ],
+  "projects": [
+    {
+      "title": "Deep Learning Pill Recognition System",
+      "dates": "Feb 2025 - Jan 2026",
+      "skills": ["Python", "YOLOv8", "OpenCV", "OpenOCR", "Flask", "React Native", "Docker"],
+      "links": {
+        "Code": "https://github.com/Rushikesh-Sontakke/Pill_Identification_Deep_Learning",
+        "Mobile App": "https://github.com/Rushikesh-Sontakke/MedicalDetectionApp"
+      },
+      "bullets": [
+        "Designed an end-to-end AI pipeline spanning preprocessing, OCR ensembles, feature fusion, and a Flask API, with automated fallback strategies for noisy real-world inputs.",
+        "Improved OCR accuracy from 63% to 79.6% across 403 drug classes using CLAHE, Otsu thresholding, and LAB/HSV enhancement.",
+        "Fused text, color, and shape features for robust recognition when imprint text was missing or unclear.",
+        "Deployed a CPU-only Docker backend on Hugging Face Spaces and integrated it with a React Native mobile application."
+      ]
+    },
+    {
+      "title": "Student Performance Prediction System",
+      "dates": "Sep 2025 - Jan 2026",
+      "skills": ["Python", "scikit-learn", "XGBoost", "Pandas", "SHAP", "feature engineering", "model evaluation", "SQL"],
+      "links": {"Code": "https://github.com/Rushikesh-Sontakke/student-performance-ml"},
+      "bullets": [
+        "Built an end-to-end data pipeline over 6,607 records with cleaning, feature engineering, and SQL-like transformations.",
+        "Benchmarked regression, random forest, XGBoost, and neural-network models; tuned an ensemble to RMSE 1.80 and R2 0.758.",
+        "Applied SHAP analysis to identify behavioral drivers and structure model outputs for decision-making."
+      ]
+    },
+    {
+      "title": "ChatSphere - Real-time Chatroom",
+      "dates": "Feb 2026 - Jun 2026",
+      "skills": ["React", "Firebase", "JavaScript"],
+      "links": {
+        "Code": "https://github.com/Rushikesh-Sontakke/ChatSphere--Real-time-Chatroom",
+        "Live Demo": "https://chatroom-169b3.web.app"
+      },
+      "bullets": [
+        "Built a React and Firebase Firestore application with live message sync, threaded replies, emoji reactions, search, and image uploads.",
+        "Implemented email/password and Google authentication plus Firestore and Storage security rules for permissioned access."
+      ]
+    }
+  ],
+  "experience": [
+    {
+      "title": "Teaching Assistant - Introduction to Programming (Python)",
+      "organization": "National Tsing Hua University",
+      "location": "Hsinchu, Taiwan",
+      "dates": "Sep 2025 - Jan 2026",
+      "skills": ["Python", "Git"],
+      "bullets": [
+        "Mentored more than 20 students through labs, debugging sessions, and project guidance.",
+        "Supported grading and instruction and organized a course hackathon focused on structured programming and software workflows."
+      ]
+    },
+    {
+      "title": "Technical Reviewer - ITSA Hackathon",
+      "organization": "ITSA Hackathon",
+      "location": "Remote",
+      "dates": "Jul 2025 - Aug 2025",
+      "skills": ["TensorFlow.js", "PHP", "MySQL", "JavaScript"],
+      "bullets": [
+        "Evaluated AI and full-stack submissions and built reference solutions to benchmark difficulty.",
+        "Produced evaluation reports comparing AI-assisted and traditional development workflows."
+      ]
+    }
+  ]
+}
+

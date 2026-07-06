@@ -1,0 +1,9 @@
+{
+  "languages": ["English"],
+  "locations": ["Hsinchu", "Taipei", "Remote"],
+  "paid_only": true,
+  "minimum_match_score": 80,
+  "application_limit": null,
+  "human_review_required": true
+}
+

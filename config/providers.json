@@ -1,0 +1,10 @@
+{
+  "providers": [
+    {"type": "greenhouse", "board_token": "appier", "company": "Appier"},
+    {"type": "greenhouse", "board_token": "aift", "company": "AIFT"},
+    {"type": "greenhouse", "board_token": "asteraearlycareer2026", "company": "Astera Labs"},
+    {"type": "lever", "site": "Gogolook", "company": "Gogolook"},
+    {"type": "lever", "site": "piccollage", "company": "PicCollage"}
+  ]
+}
+
