@@ -222,101 +222,145 @@ class ResumeDocumentGenerator:
 
     def _build_pdf(self, resume: TailoredResume, path: Path) -> None:
         from reportlab.lib import colors
-        from reportlab.lib.enums import TA_CENTER
+        from reportlab.lib.enums import TA_CENTER, TA_RIGHT
         from reportlab.lib.pagesizes import letter
         from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
         from reportlab.lib.units import inch
         from reportlab.platypus import (
-            KeepTogether, ListFlowable, ListItem, Paragraph, SimpleDocTemplate, Spacer,
+            HRFlowable, KeepTogether, Paragraph, SimpleDocTemplate, Table, TableStyle,
         )
+
+        margin = 0.6 * inch
+        page_width = letter[0]
+        content_width = page_width - 2 * margin
 
         document = SimpleDocTemplate(
             str(path), pagesize=letter,
-            leftMargin=0.58 * inch, rightMargin=0.58 * inch,
-            topMargin=0.42 * inch, bottomMargin=0.42 * inch,
+            leftMargin=margin, rightMargin=margin,
+            topMargin=0.5 * inch, bottomMargin=0.5 * inch,
             title=f"Resume - {resume.target_title} - {resume.target_company}",
             author=resume.source.name,
         )
         styles = getSampleStyleSheet()
+        ink = colors.HexColor("#222222")
+        gray = colors.HexColor(f"#{GRAY}")
+        navy = colors.HexColor(f"#{NAVY}")
+        link_blue = colors.HexColor(f"#{BLUE}")
+
         body = ParagraphStyle(
-            "ResumeBody", parent=styles["Normal"], fontName="Helvetica", fontSize=9.0,
-            leading=10.1, spaceAfter=0.9, textColor=colors.HexColor("#111111"),
+            "ResumeBody", parent=styles["Normal"], fontName="Helvetica",
+            fontSize=9.4, leading=11.4, spaceAfter=0, textColor=ink,
         )
         heading = ParagraphStyle(
-            "ResumeHeading", parent=body, fontName="Helvetica-Bold", fontSize=10.4,
-            leading=11.2, spaceBefore=3.8, spaceAfter=1.5,
-            textColor=colors.HexColor(f"#{BLUE}"), keepWithNext=True,
+            "ResumeHeading", parent=body, fontName="Helvetica-Bold", fontSize=10.2,
+            leading=11.5, spaceBefore=6, spaceAfter=2, textColor=navy, keepWithNext=True,
         )
-        entry = ParagraphStyle(
-            "ResumeEntry", parent=body, fontName="Helvetica", fontSize=9.0,
-            leading=9.9, spaceBefore=0.5, spaceAfter=0, keepWithNext=True,
+        entry_left = ParagraphStyle("EntryLeft", parent=body, spaceAfter=0)
+        entry_right = ParagraphStyle(
+            "EntryRight", parent=body, fontSize=9.1, alignment=TA_RIGHT, textColor=gray,
+        )
+        subtitle = ParagraphStyle(
+            "Subtitle", parent=body, fontSize=9.1, leading=11, textColor=gray, spaceAfter=1.2,
         )
         bullet_style = ParagraphStyle(
-            "ResumeBullet", parent=body, fontSize=8.8, leading=9.7, spaceAfter=0,
-            leftIndent=0,
+            "Bullet", parent=body, fontSize=9.1, leading=11.2, spaceAfter=1.3,
+            leftIndent=13, bulletIndent=2,
         )
+        summary_style = ParagraphStyle("Summary", parent=body, spaceBefore=1, spaceAfter=1)
         name_style = ParagraphStyle(
-            "ResumeName", parent=body, alignment=TA_CENTER, fontName="Helvetica-Bold",
-            fontSize=19.5, leading=20, textColor=colors.HexColor(f"#{NAVY}"), spaceAfter=0,
+            "Name", parent=body, alignment=TA_CENTER, fontName="Helvetica-Bold",
+            fontSize=20, leading=22, textColor=navy, spaceAfter=1,
         )
-        center = ParagraphStyle(
-            "ResumeCenter", parent=body, alignment=TA_CENTER, fontSize=8.8,
-            leading=9.6, textColor=colors.HexColor(f"#{GRAY}"), spaceAfter=1.2,
+        headline_style = ParagraphStyle(
+            "Headline", parent=body, alignment=TA_CENTER, fontSize=10.5, leading=12.5,
+            textColor=link_blue, spaceAfter=2,
+        )
+        contact_style = ParagraphStyle(
+            "Contact", parent=body, alignment=TA_CENTER, fontSize=9.2, leading=11,
+            textColor=gray, spaceAfter=2,
         )
 
-        def p(value: str, style=body):
-            return Paragraph(value, style)
-
-        def bullets(items: tuple[str, ...]):
-            return ListFlowable(
-                [ListItem(p(escape(item), bullet_style), leftIndent=0) for item in items],
-                bulletType="bullet", start="-", leftIndent=12, bulletFontName="Helvetica",
-                bulletFontSize=8, bulletOffsetY=1.1, spaceAfter=0,
-            )
-
-        story = [
-            p(escape(resume.source.name), name_style),
-            p(escape(resume.headline), center),
-            p(
-                f'<link href="{escape(resume.source.github, quote=True)}">GitHub</link> | '
-                f'<link href="{escape(resume.source.linkedin, quote=True)}">LinkedIn</link> | '
-                f'{escape(resume.source.email)} | {escape(resume.source.phone)}',
-                center,
-            ),
-            p("SUMMARY", heading),
-            p(escape(resume.summary)),
-            p("EDUCATION", heading),
-            p(
-                f'<b>{escape(resume.source.education.school)}</b> - '
-                f'{escape(resume.source.education.location)} <font color="#{GRAY}">| '
-                f'{escape(resume.source.education.dates)}</font>', entry,
-            ),
-            p(f'<i>{escape(resume.source.education.degree)}</i>', entry),
-            bullets(resume.source.education.details),
-            p("TECHNICAL SKILLS", heading),
+        _cell_pad = [
+            ("LEFTPADDING", (0, 0), (-1, -1), 0),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+            ("TOPPADDING", (0, 0), (-1, -1), 0),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
         ]
-        for group in resume.skill_groups:
-            story.append(p(f'<b>{escape(group.label)}:</b> {escape(", ".join(group.skills))}'))
 
-        story.append(p("PROJECTS", heading))
+        def section(title: str) -> list:
+            return [
+                Paragraph(title.upper(), heading),
+                HRFlowable(
+                    width="100%", thickness=0.6, spaceBefore=0.5, spaceAfter=3,
+                    color=colors.HexColor("#9AA5B1"),
+                ),
+            ]
+
+        def header_row(left_html: str, right_text: str) -> Table:
+            table = Table(
+                [[Paragraph(left_html, entry_left), Paragraph(escape(right_text), entry_right)]],
+                colWidths=[content_width * 0.74, content_width * 0.26],
+            )
+            table.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "BOTTOM"), *_cell_pad]))
+            return table
+
+        def bullet_paras(items: tuple[str, ...]) -> list:
+            return [Paragraph(escape(item), bullet_style, bulletText="•") for item in items]
+
+        edu = resume.source.education
+        story: list = [Paragraph(escape(resume.source.name), name_style)]
+        if resume.headline:
+            story.append(Paragraph(escape(resume.headline), headline_style))
+        sep = "&nbsp;&nbsp;|&nbsp;&nbsp;"
+        story.append(Paragraph(
+            f'<link href="{escape(resume.source.github, quote=True)}" color="#{BLUE}">GitHub</link>{sep}'
+            f'<link href="{escape(resume.source.linkedin, quote=True)}" color="#{BLUE}">LinkedIn</link>{sep}'
+            f'{escape(resume.source.email)}{sep}{escape(resume.source.phone)}',
+            contact_style,
+        ))
+
+        story += section("Summary")
+        story.append(Paragraph(escape(resume.summary), summary_style))
+
+        story += section("Education")
+        story.append(header_row(f"<b>{escape(edu.school)}</b>", edu.location))
+        story.append(header_row(f"<i>{escape(edu.degree)}</i>", edu.dates))
+        story += bullet_paras(edu.details)
+
+        story += section("Technical Skills")
+        skill_rows = [
+            [Paragraph(f"<b>{escape(group.label)}</b>", body),
+             Paragraph(escape(", ".join(group.skills)), body)]
+            for group in resume.skill_groups
+        ]
+        skills_table = Table(skill_rows, colWidths=[1.15 * inch, content_width - 1.15 * inch])
+        skills_table.setStyle(TableStyle([
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 0),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+            ("TOPPADDING", (0, 0), (-1, -1), 1.2),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 1.2),
+        ]))
+        story.append(skills_table)
+
+        story += section("Projects")
         for project in resume.projects:
             links = "".join(
-                f' | <link href="{escape(url, quote=True)}">{escape(label)}</link>'
+                f'&nbsp;&nbsp;<link href="{escape(url, quote=True)}" color="#{BLUE}">{escape(label)}</link>'
                 for label, url in project.links.items()
             )
-            block = [
-                p(f'<b>{escape(project.title)}</b>{links} <font color="#{GRAY}">| {escape(project.dates)}</font>', entry),
-                p(f'<i>{escape(", ".join(project.skills))}</i>', entry),
-                bullets(project.bullets),
-            ]
-            story.append(KeepTogether(block))
+            story.append(KeepTogether([
+                header_row(f"<b>{escape(project.title)}</b>{links}", project.dates),
+                Paragraph(f'<i>{escape(", ".join(project.skills))}</i>', subtitle),
+                *bullet_paras(project.bullets),
+            ]))
 
-        story.append(p("EXPERIENCE", heading))
+        story += section("Experience")
         for item in resume.experience:
-            block = [
-                p(f'<b>{escape(item.title)}</b> <font color="#{GRAY}">| {escape(item.dates)}</font>', entry),
-                p(f'<i>{escape(item.organization)} | {escape(item.location)}</i>', entry),
-                bullets(item.bullets),
-            ]
-            story.append(KeepTogether(block))
+            story.append(KeepTogether([
+                header_row(f"<b>{escape(item.title)}</b>", item.dates),
+                Paragraph(f"<i>{escape(item.organization)}{sep}{escape(item.location)}</i>", subtitle),
+                *bullet_paras(item.bullets),
+            ]))
+
         document.build(story)
