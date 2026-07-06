@@ -245,30 +245,54 @@ class ApplicationAssistant:
             browser.close()
 
     def _fill_target(self, page, target: FieldTarget) -> bool:  # pragma: no cover - browser
-        locator = self._first_visible(page, target)
-        if locator is None:
+        # A single field must never abort the run: any failure is treated as
+        # "not filled" so the driver still reaches the stop-at-submit step.
+        try:
+            locator = self._first_visible(page, target)
+            if locator is None:
+                return False
+            if target.kind == "file":
+                locator.set_input_files(target.value)
+            else:
+                locator.fill(target.value)
+            return True
+        except Exception:
             return False
-        if target.kind == "file":
-            locator.set_input_files(target.value)
-        else:
-            locator.fill(target.value)
-        return True
+
+    # Elements we can type into. Greenhouse renders file uploads and some custom
+    # questions as <div role="group">, which look label-addressable but are not
+    # fillable — we must reject them for text/textarea fields.
+    _FILLABLE_JS = (
+        "el => { const t = el.tagName.toLowerCase();"
+        " return t === 'input' || t === 'textarea' || t === 'select' || el.isContentEditable; }"
+    )
+    _FILE_INPUT_JS = "el => el.tagName.toLowerCase() === 'input' && el.type === 'file'"
+
+    def _is_acceptable(self, locator, kind: str) -> bool:  # pragma: no cover - browser
+        try:
+            if not locator.count():
+                return False
+            # File inputs are often visually hidden behind a styled button, but
+            # set_input_files still works on them, so don't require visibility.
+            if kind != "file" and not locator.is_visible():
+                return False
+        except Exception:
+            return False
+        check = self._FILE_INPUT_JS if kind == "file" else self._FILLABLE_JS
+        try:
+            return bool(locator.evaluate(check))
+        except Exception:
+            return False
 
     def _first_visible(self, page, target: FieldTarget):  # pragma: no cover - browser
         for selector in target.selectors:
             locator = page.locator(selector).first
-            try:
-                if locator.count() and locator.is_visible():
-                    return locator
-            except Exception:
-                continue
+            if self._is_acceptable(locator, target.kind):
+                return locator
         for keyword in target.label_keywords:
             locator = page.get_by_label(re.compile(keyword, re.I)).first
-            try:
-                if locator.count() and locator.is_visible():
-                    return locator
-            except Exception:
-                continue
+            if self._is_acceptable(locator, target.kind):
+                return locator
         return None
 
     def _highlight_submit_without_clicking(self, page) -> None:  # pragma: no cover - browser

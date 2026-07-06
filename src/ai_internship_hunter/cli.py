@@ -221,13 +221,14 @@ def main(argv: list[str] | None = None) -> int:
         if not job.url:
             raise SystemExit(f"Job {job.id} has no application URL")
         packet_dir = packet_dir_for(args.output, job.id, job.company, job.title)
-        resume_pdf = packet_dir / "tailored-resume.pdf"
         review_md = packet_dir / "REVIEW.md"
-        if not resume_pdf.exists() or not review_md.exists():
+        resume_pdfs = sorted(packet_dir.glob("*.pdf"))
+        if not resume_pdfs or not review_md.exists():
             raise SystemExit(
                 f"Missing materials for job {job.id}. Run: "
                 f"build-resume --job-id {job.id} first"
             )
+        resume_pdf = resume_pdfs[0]
         applicant = ApplicantProfile.load(
             project_root() / "config" / "candidate.json",
             project_root() / "config" / "resume.json",

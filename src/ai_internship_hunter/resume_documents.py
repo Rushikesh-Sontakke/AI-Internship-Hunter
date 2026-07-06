@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+import re
 from html import escape
 from pathlib import Path
 
@@ -14,11 +16,64 @@ NAVY = "17365D"
 BLUE = "1F4D78"
 GRAY = "555555"
 
+# Fallback maps <b>/<i> markup to the built-in Helvetica family.
+_HELVETICA_FONTS = {
+    "regular": "Helvetica", "bold": "Helvetica-Bold",
+    "italic": "Helvetica-Oblique", "bolditalic": "Helvetica-BoldOblique",
+}
+_pdf_fonts_cache: dict[str, str] | None = None
+
 
 def _slug(value: str) -> str:
-    import re
-
     return re.sub(r"[^a-z0-9]+", "-", value.casefold()).strip("-")
+
+
+def resume_file_stem(name: str) -> str:
+    """Professional resume filename stem, e.g. ``Rushikesh_Sontakke_Resume``."""
+
+    cleaned = re.sub(r"[^A-Za-z0-9]+", "_", name).strip("_")
+    return f"{cleaned}_Resume" if cleaned else "Resume"
+
+
+def _pdf_fonts() -> dict[str, str]:
+    """Register Calibri from the system font directory if available.
+
+    Returns a family map for regular/bold/italic/bolditalic. Falls back to the
+    built-in Helvetica family when Calibri is not installed, so PDF generation
+    never depends on a specific machine.
+    """
+
+    global _pdf_fonts_cache
+    if _pdf_fonts_cache is not None:
+        return _pdf_fonts_cache
+
+    fonts = dict(_HELVETICA_FONTS)
+    try:
+        from reportlab.pdfbase import pdfmetrics
+        from reportlab.pdfbase.ttfonts import TTFont
+
+        fonts_dir = Path(os.environ.get("WINDIR", r"C:\Windows")) / "Fonts"
+        files = {
+            "Calibri": "calibri.ttf", "Calibri-Bold": "calibrib.ttf",
+            "Calibri-Italic": "calibrii.ttf", "Calibri-BoldItalic": "calibriz.ttf",
+        }
+        paths = {name: fonts_dir / filename for name, filename in files.items()}
+        if all(path.exists() for path in paths.values()):
+            for font_name, path in paths.items():
+                pdfmetrics.registerFont(TTFont(font_name, str(path)))
+            pdfmetrics.registerFontFamily(
+                "Calibri", normal="Calibri", bold="Calibri-Bold",
+                italic="Calibri-Italic", boldItalic="Calibri-BoldItalic",
+            )
+            fonts = {
+                "regular": "Calibri", "bold": "Calibri-Bold",
+                "italic": "Calibri-Italic", "bolditalic": "Calibri-BoldItalic",
+            }
+    except Exception:
+        pass
+
+    _pdf_fonts_cache = fonts
+    return fonts
 
 
 class ResumeDocumentGenerator:
@@ -28,8 +83,9 @@ class ResumeDocumentGenerator:
     def generate(self, resume: TailoredResume, job_id: int) -> tuple[Path, Path]:
         target = self.output_dir / f"{job_id}-{_slug(resume.target_company)}-{_slug(resume.target_title)}"
         target.mkdir(parents=True, exist_ok=True)
-        docx_path = target / "tailored-resume.docx"
-        pdf_path = target / "tailored-resume.pdf"
+        stem = resume_file_stem(resume.source.name)
+        docx_path = target / f"{stem}.docx"
+        pdf_path = target / f"{stem}.pdf"
         self._build_docx(resume, docx_path)
         self._build_pdf(resume, pdf_path)
         return docx_path, pdf_path
@@ -242,18 +298,19 @@ class ResumeDocumentGenerator:
             author=resume.source.name,
         )
         styles = getSampleStyleSheet()
+        fonts = _pdf_fonts()
         ink = colors.HexColor("#222222")
         gray = colors.HexColor(f"#{GRAY}")
         navy = colors.HexColor(f"#{NAVY}")
         link_blue = colors.HexColor(f"#{BLUE}")
 
         body = ParagraphStyle(
-            "ResumeBody", parent=styles["Normal"], fontName="Helvetica",
-            fontSize=9.4, leading=11.4, spaceAfter=0, textColor=ink,
+            "ResumeBody", parent=styles["Normal"], fontName=fonts["regular"],
+            fontSize=9.6, leading=11.7, spaceAfter=0, textColor=ink,
         )
         heading = ParagraphStyle(
-            "ResumeHeading", parent=body, fontName="Helvetica-Bold", fontSize=10.2,
-            leading=11.5, spaceBefore=6, spaceAfter=2, textColor=navy, keepWithNext=True,
+            "ResumeHeading", parent=body, fontName=fonts["bold"], fontSize=10.4,
+            leading=11.8, spaceBefore=6, spaceAfter=2, textColor=navy, keepWithNext=True,
         )
         entry_left = ParagraphStyle("EntryLeft", parent=body, spaceAfter=0)
         entry_right = ParagraphStyle(
@@ -268,8 +325,8 @@ class ResumeDocumentGenerator:
         )
         summary_style = ParagraphStyle("Summary", parent=body, spaceBefore=1, spaceAfter=1)
         name_style = ParagraphStyle(
-            "Name", parent=body, alignment=TA_CENTER, fontName="Helvetica-Bold",
-            fontSize=20, leading=22, textColor=navy, spaceAfter=1,
+            "Name", parent=body, alignment=TA_CENTER, fontName=fonts["bold"],
+            fontSize=21, leading=23, textColor=navy, spaceAfter=1,
         )
         headline_style = ParagraphStyle(
             "Headline", parent=body, alignment=TA_CENTER, fontSize=10.5, leading=12.5,
