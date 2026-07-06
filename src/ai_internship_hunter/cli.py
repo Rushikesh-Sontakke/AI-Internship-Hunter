@@ -13,6 +13,7 @@ from .browser_bot import (
 )
 from .config import load_defaults, project_root
 from .dashboard import serve_dashboard
+from .interview_prep import InterviewPrepGenerator
 from .matcher import JobMatcher
 from .materials import ReviewPacketGenerator
 from .providers import JsonFileProvider, load_configured_providers
@@ -53,6 +54,11 @@ def build_parser() -> argparse.ArgumentParser:
     dashboard = commands.add_parser("dashboard", help="Start the local read-only review dashboard")
     dashboard.add_argument("--host", default="127.0.0.1")
     dashboard.add_argument("--port", type=int, default=8765)
+    interview = commands.add_parser(
+        "interview", help="Generate an interview-prep packet for a qualified job"
+    )
+    interview.add_argument("--job-id", type=int, required=True)
+    interview.add_argument("--output", type=Path, default=Path("generated"))
     apply = commands.add_parser(
         "apply",
         help="Open the application form in a browser, fill it, and stop at Submit",
@@ -161,6 +167,19 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "dashboard":
         serve_dashboard(repository, host=args.host, port=args.port)
+        return 0
+    if args.command == "interview":
+        job = repository.get_job(args.job_id)
+        if job is None:
+            raise SystemExit(f"Job {args.job_id} does not exist")
+        result = matcher.score(job)
+        repository.save_match(result)
+        if not result.qualified:
+            raise SystemExit(
+                f"Job {job.id} scored {result.score}%; minimum is {preferences.minimum_match_score}%"
+            )
+        path = InterviewPrepGenerator(profile, args.output).generate(job, result)
+        print(f"Interview prep: {path}")
         return 0
     if args.command == "apply":
         job = repository.get_job(args.job_id)

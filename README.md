@@ -18,6 +18,7 @@ The application does **not** scrape protected job boards, log into accounts, or 
 - Responsive local review dashboard
 - Deterministic resume-tailoring plan and cover-letter draft
 - Browser-assisted form filling that stops at the Submit button (opt-in)
+- Deterministic interview-prep packets grounded in the posting and your evidence
 - Review queue; no submit action exists
 - CLI and unit tests using only the Python standard library
 
@@ -81,6 +82,20 @@ python -m ai_internship_hunter --db data/hunter.db apply --job-id 1
 Fields the form does not expose are reported as skipped so you can complete them by
 hand before submitting.
 
+### Interview preparation
+
+Generate a study packet for a qualified role. It selects technical and coding
+prompts from concept banks keyed to the concepts the posting actually mentions,
+lists your matched strengths and verified evidence as STAR anchors, surfaces any
+requirements the posting names but your resume lacks, and leaves company-specific
+research as a checklist — it never invents facts about the company.
+
+```powershell
+python -m ai_internship_hunter --db data/hunter.db interview --job-id 1
+```
+
+The packet is written as `INTERVIEW.md` in the job's `generated/` folder.
+
 ## Architecture
 
 - `config/`: candidate and search preferences
@@ -94,10 +109,11 @@ hand before submitting.
 - `providers.py`: JSON, Greenhouse, and Lever discovery adapters
 - `reports.py`: ranked top-match reports
 - `browser_bot.py`: opt-in form filling that stops before submit (pure field plan + thin Playwright driver)
+- `interview_prep.py`: deterministic, posting-grounded interview study packets
 - `cli.py`: end-to-end local workflow
 
 ## Next milestone
 
-Add interview-preparation packets (company research, likely questions, coding and
-behavioral prompts) for roles you have submitted, plus a GitHub/LinkedIn analyzer
-that suggests resume updates from newly completed projects.
+Add a GitHub/LinkedIn analyzer that reads your public repositories, identifies newly
+completed projects, and suggests concrete resume and project-description updates so
+your application materials stay current with minimal manual effort.
