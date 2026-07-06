@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import os
 import re
+from datetime import date
 from html import escape
 from pathlib import Path
 
-from .resume import Experience, Project, TailoredResume
+from .resume import Experience, Project, ResumeSource, TailoredResume
 
 
 # compact_reference_guide with named resume overrides:
@@ -33,6 +34,73 @@ def resume_file_stem(name: str) -> str:
 
     cleaned = re.sub(r"[^A-Za-z0-9]+", "_", name).strip("_")
     return f"{cleaned}_Resume" if cleaned else "Resume"
+
+
+def cover_letter_file_stem(name: str) -> str:
+    """Cover-letter filename stem, e.g. ``Rushikesh_Sontakke_Cover_Letter``."""
+
+    cleaned = re.sub(r"[^A-Za-z0-9]+", "_", name).strip("_")
+    return f"{cleaned}_Cover_Letter" if cleaned else "Cover_Letter"
+
+
+def build_cover_letter_pdf(source: ResumeSource, body_text: str, path: Path) -> Path:
+    """Render a one-page business-letter cover letter matching the resume style.
+
+    ``body_text`` is the drafted letter (greeting through signature). It is laid
+    out verbatim under a letterhead; no content is added or invented.
+    """
+
+    from reportlab.lib import colors
+    from reportlab.lib.enums import TA_CENTER
+    from reportlab.lib.pagesizes import letter
+    from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+    from reportlab.lib.units import inch
+    from reportlab.platypus import HRFlowable, Paragraph, SimpleDocTemplate, Spacer
+
+    fonts = _pdf_fonts()
+    document = SimpleDocTemplate(
+        str(path), pagesize=letter,
+        leftMargin=0.9 * inch, rightMargin=0.9 * inch,
+        topMargin=0.8 * inch, bottomMargin=0.8 * inch,
+        title=f"Cover Letter - {source.name}", author=source.name,
+    )
+    styles = getSampleStyleSheet()
+    gray = colors.HexColor(f"#{GRAY}")
+    navy = colors.HexColor(f"#{NAVY}")
+    base = ParagraphStyle(
+        "CLBody", parent=styles["Normal"], fontName=fonts["regular"],
+        fontSize=10.5, leading=14, spaceAfter=9, textColor=colors.HexColor("#222222"),
+    )
+    name_style = ParagraphStyle(
+        "CLName", parent=base, alignment=TA_CENTER, fontName=fonts["bold"],
+        fontSize=18, leading=20, textColor=navy, spaceAfter=1,
+    )
+    contact_style = ParagraphStyle(
+        "CLContact", parent=base, alignment=TA_CENTER, fontSize=9.4, leading=11,
+        textColor=gray, spaceAfter=2,
+    )
+
+    sep = "&nbsp;&nbsp;|&nbsp;&nbsp;"
+    parts = [escape(source.email), escape(source.phone)]
+    if source.github:
+        parts.append(f'<link href="{escape(source.github, quote=True)}" color="#{BLUE}">GitHub</link>')
+    if source.linkedin:
+        parts.append(f'<link href="{escape(source.linkedin, quote=True)}" color="#{BLUE}">LinkedIn</link>')
+    contacts = sep.join(part for part in parts if part)
+    story: list = [
+        Paragraph(escape(source.name), name_style),
+        Paragraph(contacts, contact_style),
+        HRFlowable(width="100%", thickness=0.6, spaceBefore=1, spaceAfter=10,
+                   color=colors.HexColor("#9AA5B1")),
+        Paragraph(date.today().strftime("%B %-d, %Y") if os.name != "nt"
+                  else date.today().strftime("%B %#d, %Y"), base),
+        Spacer(1, 6),
+    ]
+    for para in re.split(r"\n\s*\n", body_text.strip()):
+        if para.strip():
+            story.append(Paragraph(escape(para.strip()).replace("\n", "<br/>"), base))
+    document.build(story)
+    return path
 
 
 def _pdf_fonts() -> dict[str, str]:

@@ -59,7 +59,25 @@ def test_field_plan_skips_empty_values(tmp_path):
     names = {target.name for target in plan}
     assert "phone" not in names  # empty value dropped
     assert "github" not in names
-    assert {"first_name", "last_name", "email", "linkedin", "resume", "cover_letter"} <= names
+    assert {"first_name", "last_name", "email", "linkedin", "resume", "cover_letter_text"} <= names
+    assert "cover_letter_file" not in names  # no cover-letter PDF supplied
+
+
+def test_cover_letter_file_target_added_when_pdf_supplied():
+    profile = ApplicantProfile(
+        first_name="A", last_name="B", email="a@b.com", phone="1",
+        location="X", github="", linkedin="",
+    )
+    plan = build_field_plan(
+        profile, Path("r.pdf"), "Dear team", cover_letter_pdf=Path("/tmp/cover.pdf")
+    )
+    by_name = {target.name: target for target in plan}
+    assert "cover_letter_file" in by_name
+    cover = by_name["cover_letter_file"]
+    assert cover.kind == "file"
+    assert cover.value == str(Path("/tmp/cover.pdf"))
+    # File target must not fall back to a generic file input (would hit the resume).
+    assert 'input[type="file"]' not in cover.selectors
 
 
 def test_resume_target_is_a_file_upload(tmp_path):

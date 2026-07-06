@@ -16,19 +16,34 @@ class ReviewPacketGenerator:
         self.profile = profile
         self.output_dir = output_dir
 
-    def generate(self, job: JobPosting, match: MatchResult) -> Path:
+    def generate(
+        self, job: JobPosting, match: MatchResult, cover_letter: str | None = None
+    ) -> Path:
         if not match.qualified:
             raise ValueError("Only qualified jobs can receive an application packet")
         packet_dir = self.output_dir / f"{job.id}-{_slug(job.company)}-{_slug(job.title)}"
         packet_dir.mkdir(parents=True, exist_ok=True)
         packet = packet_dir / "REVIEW.md"
-        packet.write_text(self._render(job, match), encoding="utf-8")
+        packet.write_text(self._render(job, match, cover_letter), encoding="utf-8")
         return packet
 
-    def _render(self, job: JobPosting, match: MatchResult) -> str:
+    def _default_cover_letter(self, job: JobPosting, match: MatchResult) -> str:
+        skills = ", ".join(match.matched_skills) or "relevant skills"
+        return (
+            "Dear Hiring Team,\n\n"
+            f"I am applying for the {job.title} role at {job.company}. I am an EECS "
+            "undergraduate at National Tsing Hua University with hands-on experience "
+            f"relevant to this role through {skills}.\n\n"
+            f"Sincerely,\n{self.profile.name}"
+        )
+
+    def _render(
+        self, job: JobPosting, match: MatchResult, cover_letter: str | None = None
+    ) -> str:
         skills = ", ".join(match.matched_skills) or "No direct skills detected"
         evidence = "\n".join(f"- {item}" for item in self.profile.evidence)
         reasons = "\n".join(f"- {item}" for item in match.reasons)
+        letter = cover_letter or self._default_cover_letter(job, match)
         return f"""# Human review packet: {job.title}
 
 ## Job
@@ -53,14 +68,7 @@ Use only this verified evidence:
 
 ## Cover-letter draft
 
-Dear Hiring Team,
-
-I am applying for the {job.title} role at {job.company}. I am an EECS undergraduate at National Tsing Hua University specializing in machine learning and computer vision. My background aligns with this role through hands-on work with {skills}.
-
-One relevant project is an end-to-end pill-recognition system combining YOLOv8, OpenCV, OCR, Flask, and Docker. I improved OCR accuracy from 63% to 79.6% across 403 drug classes. I also built a predictive modeling pipeline over 6,607 records using XGBoost and SHAP.
-
-Sincerely,  
-{self.profile.name}
+{letter}
 
 ## Final review checklist
 

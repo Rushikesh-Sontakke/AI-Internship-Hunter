@@ -74,12 +74,20 @@ class FieldTarget:
 
 
 def build_field_plan(
-    profile: ApplicantProfile, resume_pdf: Path, cover_letter: str
+    profile: ApplicantProfile,
+    resume_pdf: Path,
+    cover_letter: str,
+    cover_letter_pdf: Path | None = None,
 ) -> list[FieldTarget]:
     """Build the ordered fill plan. Pure: no browser, no I/O. Unit tested.
 
     Only fields with a non-empty value are included, so a form that lacks a given
     field simply has nothing to fill for it.
+
+    The cover letter is offered two ways so it works across ATS layouts: as a file
+    upload (Greenhouse renders it as a file input) and as a text box (Lever and
+    others use a textarea). Whichever the form exposes gets filled; the other is
+    reported as skipped.
     """
 
     candidates = [
@@ -161,13 +169,16 @@ def build_field_plan(
             kind="file",
         ),
         FieldTarget(
-            name="cover_letter",
+            name="cover_letter_file",
+            value=str(cover_letter_pdf) if cover_letter_pdf else "",
+            # Specific selectors only: must not fall back to the resume file input.
+            selectors=('input[type="file"][name="cover_letter"]', "#cover_letter"),
+            kind="file",
+        ),
+        FieldTarget(
+            name="cover_letter_text",
             value=cover_letter,
-            selectors=(
-                'textarea[name="comments"]',
-                "#cover_letter_text",
-                "textarea",
-            ),
+            selectors=('textarea[name="comments"]', "#cover_letter_text"),
             label_keywords=("cover letter", "additional information", "comments"),
             kind="textarea",
         ),

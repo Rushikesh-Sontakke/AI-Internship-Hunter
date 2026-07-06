@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .models import JobPosting, MatchResult
+from .roles import role_area
 
 
 def _normalize(value: str) -> str:
@@ -123,10 +124,11 @@ class ResumeTailor:
         focus = ", ".join(matched[:6])
         summary = self.source.base_summary
         if focus:
+            area = role_area(job.title, job.description)
             summary = (
-                "EECS undergraduate at National Tsing Hua University specializing in machine "
-                f"learning and computer vision, with hands-on experience in {focus}. Built and "
-                "deployed deep learning, data, and full-stack systems."
+                f"EECS undergraduate at National Tsing Hua University with hands-on experience in "
+                f"{area}, including {focus}. Builds and deploys end-to-end systems across machine "
+                "learning, data, and full-stack development."
             )
 
         skill_groups = tuple(

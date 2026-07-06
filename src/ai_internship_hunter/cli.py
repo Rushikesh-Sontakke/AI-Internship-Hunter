@@ -12,6 +12,7 @@ from .browser_bot import (
     packet_dir_for,
 )
 from .config import load_defaults, project_root
+from .cover_letter import build_cover_letter
 from .dashboard import serve_dashboard
 from .github_analyzer import (
     analyze as analyze_github,
@@ -26,7 +27,11 @@ from .providers import JsonFileProvider, load_configured_providers
 from .reports import write_top_matches
 from .repository import Repository
 from .resume import ResumeSource, ResumeTailor
-from .resume_documents import ResumeDocumentGenerator
+from .resume_documents import (
+    ResumeDocumentGenerator,
+    build_cover_letter_pdf,
+    cover_letter_file_stem,
+)
 from .semantic import SentenceTransformerSimilarity
 
 
@@ -155,7 +160,10 @@ def main(argv: list[str] | None = None) -> int:
             raise SystemExit(
                 f"Job {job.id} scored {result.score}%; minimum is {preferences.minimum_match_score}%"
             )
-        packet = ReviewPacketGenerator(profile, args.output).generate(job, result)
+        source = ResumeSource.load(project_root() / "config" / "resume.json")
+        tailored = ResumeTailor(source).tailor(job, result)
+        cover_text = build_cover_letter(tailored, job, result)
+        packet = ReviewPacketGenerator(profile, args.output).generate(job, result, cover_text)
         repository.mark_ready_for_review(job.id, packet)
         print(f"Review packet: {packet}")
         return 0
@@ -171,12 +179,16 @@ def main(argv: list[str] | None = None) -> int:
             )
         source = ResumeSource.load(project_root() / "config" / "resume.json")
         tailored = ResumeTailor(source).tailor(job, result)
-        packet = ReviewPacketGenerator(profile, args.output).generate(job, result)
+        cover_text = build_cover_letter(tailored, job, result)
+        packet = ReviewPacketGenerator(profile, args.output).generate(job, result, cover_text)
         docx_path, pdf_path = ResumeDocumentGenerator(args.output).generate(tailored, job.id)
+        cover_pdf = pdf_path.parent / f"{cover_letter_file_stem(source.name)}.pdf"
+        build_cover_letter_pdf(source, cover_text, cover_pdf)
         repository.mark_ready_for_review(job.id, packet)
         print(f"Review packet: {packet}")
         print(f"Tailored DOCX: {docx_path}")
         print(f"Tailored PDF: {pdf_path}")
+        print(f"Cover letter PDF: {cover_pdf}")
         return 0
     if args.command == "dashboard":
         serve_dashboard(repository, host=args.host, port=args.port)
@@ -222,19 +234,23 @@ def main(argv: list[str] | None = None) -> int:
             raise SystemExit(f"Job {job.id} has no application URL")
         packet_dir = packet_dir_for(args.output, job.id, job.company, job.title)
         review_md = packet_dir / "REVIEW.md"
-        resume_pdfs = sorted(packet_dir.glob("*.pdf"))
+        resume_pdfs = sorted(packet_dir.glob("*_Resume.pdf"))
         if not resume_pdfs or not review_md.exists():
             raise SystemExit(
                 f"Missing materials for job {job.id}. Run: "
                 f"build-resume --job-id {job.id} first"
             )
         resume_pdf = resume_pdfs[0]
+        cover_pdfs = sorted(packet_dir.glob("*_Cover_Letter.pdf"))
+        cover_pdf = cover_pdfs[0].resolve() if cover_pdfs else None
         applicant = ApplicantProfile.load(
             project_root() / "config" / "candidate.json",
             project_root() / "config" / "resume.json",
         )
         cover_letter = extract_cover_letter(review_md.read_text(encoding="utf-8"))
-        plan = build_field_plan(applicant, resume_pdf.resolve(), cover_letter)
+        plan = build_field_plan(
+            applicant, resume_pdf.resolve(), cover_letter, cover_letter_pdf=cover_pdf
+        )
         print(f"Opening application for: {job.company} - {job.title}")
         print(f"URL: {job.url}")
         try:
